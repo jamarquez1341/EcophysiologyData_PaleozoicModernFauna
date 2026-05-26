@@ -1,0 +1,1241 @@
+---
+title: "Marquez+2026_PNAS_PhysiologicalComparisons_Statistics"
+output: html_document
+date: "2025-02-24"
+---
+
+This script was used to compare experimentally derived Ao and Eo, OBIS derived bigeographic physiological traits, and field guide derived physiological traits between the Paleozoic and Modern Faunas. 
+
+```{r}
+library(tidyverse)
+library(png)
+library(rphylopic)
+library(cowplot)
+library(car)
+```
+
+```{r, read in PNG images downloaded from Phylopic}
+# Read images
+img_clam <- readPNG("phylopic.clam.616X490.png")
+img_brach <- readPNG("phylopic_rhynchonelliformea_192x192.png")
+image_echinodermata <- readPNG("phylopic_echinodermata_192x192.png")
+image_calliostoma <- readPNG("phylopic_calliostoma_192x192.png")
+image_anthozoa <- readPNG("phylopic_anthozoa_192x192.png")
+image_crinoidea <- readPNG("phylopic_crinoidea_192x192.png")
+```
+
+```{r, USING ALL OF MY EXPERIMENTAL DATA AND PUBLISHED LITERATURE DATA}
+boxdata <- read.csv("PaleozoicVModern_FinalMIParameterComparison_WarmThermalRangeOnly_ForFigsOnly.csv", header=T)
+print(boxdata)
+```
+
+```{r}
+tapply(boxdata$Eo, boxdata$Fauna, median, na.rm = TRUE)
+```
+
+```{r}
+tapply(boxdata$Ao, boxdata$Fauna, median, na.rm = TRUE)
+```
+
+```{r}
+boxdata %>% count(Fauna)
+```
+
+```{r}
+# Function to print boxplot stats for a column within a subset (e.g., P or M)
+print_boxplot_stats <- function(data, column_name, fauna_type) {
+  values <- data %>% 
+    filter(Fauna == fauna_type) %>% 
+    pull({{ column_name }})
+  
+  stats <- fivenum(values)  # min, Q1, median, Q3, max
+  
+  cat("----", column_name, "(", fauna_type, ")", "----\n")
+  cat("Min:            ", stats[1], "\n")
+  cat("1st Quartile:   ", stats[2], "\n")
+  cat("Median:         ", stats[3], "\n")
+  cat("3rd Quartile:   ", stats[4], "\n")
+  cat("Max:            ", stats[5], "\n")
+}
+```
+
+```{r}
+# Run stats for all combinations: Ao:P, Ao:M, Eo:P, Eo:M
+print_boxplot_stats(boxdata, "Ao", "P")
+print_boxplot_stats(boxdata, "Ao", "M")
+print_boxplot_stats(boxdata, "Eo", "P")
+print_boxplot_stats(boxdata, "Eo", "M")
+
+```
+
+```{r, make a dataframe of experimentally-derived data (including stellaroidea)}
+# Assuming your dataframe is called df
+boxdata2 <- boxdata %>%
+  filter(!(Class %in% c("Asteroidea", "Ophiuroidea")))
+
+print(boxdata2)
+```
+
+```{r}
+tapply(boxdata2$Eo, boxdata2$Fauna, median, na.rm = TRUE)
+```
+
+```{r}
+tapply(boxdata2$Ao, boxdata2$Fauna, median, na.rm = TRUE)
+```
+
+```{r}
+# Run stats for all combinations: Ao:P, Ao:M, Eo:P, Eo:M
+print_boxplot_stats(boxdata2, "Ao", "P")
+print_boxplot_stats(boxdata2, "Ao", "M")
+print_boxplot_stats(boxdata2, "Eo", "P")
+print_boxplot_stats(boxdata2, "Eo", "M")
+```
+
+```{r, make a dataframe of only experimentally-derived data collected as a part of this current study to compare organisms collected using the same SOPs (exclude physiology data acquired from published literature)}
+boxdata3 <- boxdata %>%
+  filter(Source == "Experiment")
+
+print(boxdata3)
+```
+
+
+##########################################################################################################
+Marquez+ 2026 Figure 2: Boxplots Using Experimentally-derived Data (including Asteroidea and Ophiuroidea)
+##########################################################################################################
+
+```{r}
+range(boxdata$Ao, na.rm = TRUE)
+range(boxdata$Eo, na.rm = TRUE)
+```
+
+```{r, USING ALL OF MY EXPERIMENTAL DATA AND PUBLISHED LITERATURE DATA}
+##Eo Plot##
+Eo_Box1 <- ggplot(boxdata, aes(x= Fauna, y=Eo, fill=Fauna)) +
+  geom_boxplot(outlier.size = 4, 
+               outlier.shape = 1,
+               outlier.stroke = 1.2,
+               outlier.colour = "black") +
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[o]*")"))
+
+#theme(panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(), 
+        #axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(color = "black"),
+        #panel.background = element_blank(), 
+        #axis.title = element_text(family = "Times New Roman", color = "black", size = 18),
+        #axis.title.x = element_text(face = "bold"), 
+        #axis.title.y = element_text(face = "bold"),
+        #axis.text = element_text(family = "Times New Roman", color = "black", size = 12),
+        #legend.position = "none")+
+  #labs(
+  #x = expression(Temp~degree*C),
+  #y = expression(Hypoxia~Tolerance~(P[crit] %.% B^epsilon)))
+
+
+##Ao Boxplot##
+Ao_Box1 <- ggplot(boxdata, aes(x= Fauna, y=Ao, fill=Fauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Hypoxia Tolerance (A"[o]*")"))
+
+Eo_Box1
+Ao_Box1
+
+Eo_Box1_phylopic <- Eo_Box1 + 
+  add_phylopic(img_clam, alpha = 1, x = "M", y = 1.2, ysize = 0.192) +
+  add_phylopic(img_brach, alpha = 1, x = "P", y = 1.2, ysize = 0.256) +
+  add_phylopic(image_echinodermata, alpha = 1, x = 1.27, y = 1.05, ysize = 0.235) +
+  add_phylopic(image_calliostoma, alpha = 1, x = 0.78, y = 1.05, ysize = 0.179) +
+  add_phylopic(image_anthozoa, alpha = 1, x = 2.3, y = 1.05, ysize = 0.2131) +
+  add_phylopic(image_crinoidea, alpha = 1, x = 1.8, y = 1.05, ysize = 0.240)
+
+Ao_Box1_phylopic <- Ao_Box1 + 
+  add_phylopic(img_clam, alpha = 1, x = "M", y = 200, ysize = 30) +
+  add_phylopic(img_brach, alpha = 1, x = "P", y = 200, ysize = 40) +
+  add_phylopic(image_echinodermata, alpha = 1, x = 1.25, y = 175, ysize = 34.5) +
+  add_phylopic(image_calliostoma, alpha = 1, x = 0.78, y = 175, ysize = 28) +
+  add_phylopic(image_anthozoa, alpha = 1, x = 2.3, y = 175, ysize = 33.25) +
+  add_phylopic(image_crinoidea, alpha = 1, x = 1.8, y = 175, ysize = 35.2)
+
+Eo_Box1_phylopic
+Ao_Box1_phylopic
+
+```
+
+```{r}
+# Now plot them side by side
+Experimental_boxplots <- plot_grid(Ao_Box1, Eo_Box1, ncol = 2)
+Experimental_boxplots
+```
+
+```{r}
+ggsave("Figure2_ExperimentalData.pdf", plot= Experimental_boxplots, width=28, height=20)
+```
+
+################################################################################
+Statistical tests: ALL Experimentally-derived data (including Stelleroidea)
+################################################################################
+
+```{r, test for normality}
+shapiro.test(boxdata$Eo[boxdata$Fauna == "P"])
+shapiro.test(boxdata$Eo[boxdata$Fauna == "M"])
+
+shapiro.test(boxdata$Ao[boxdata$Fauna == "P"])
+shapiro.test(boxdata$Ao[boxdata$Fauna == "M"])
+```
+
+```{r, test for homogeneity of variance (robust to non-normality)}
+leveneTest(Eo ~ Fauna, data = boxdata)
+leveneTest(Ao ~ Fauna, data = boxdata)
+```
+
+```{r}
+wilcox.test(Eo ~ Fauna, data = boxdata)
+wilcox.test(Ao ~ Fauna, data = boxdata)
+```
+
+########################################################################################################
+Figures and Stats EXCLUDING Asteroidea and Ophiuroidea (including all other experimentally-derived data)
+########################################################################################################
+
+```{r, test for normality}
+shapiro.test(boxdata2$Eo[boxdata2$Fauna == "P"])
+shapiro.test(boxdata2$Eo[boxdata2$Fauna == "M"])
+
+shapiro.test(boxdata2$Ao[boxdata2$Fauna == "P"])
+shapiro.test(boxdata2$Ao[boxdata2$Fauna == "M"])
+```
+
+```{r, test for homogeneity of variance (assumes normality)}
+var.test(Eo ~ Fauna, data = boxdata2)
+var.test(Ao ~ Fauna, data = boxdata2)
+```
+
+```{r, test for homogeneity of variance (robust to non-normality)}
+leveneTest(Eo ~ Fauna, data = boxdata2)
+leveneTest(Ao ~ Fauna, data = boxdata2)
+```
+
+```{r, non-parametric test, does not assume normality}
+wilcox.test(Eo ~ Fauna, data = boxdata2)
+wilcox.test(Ao ~ Fauna, data = boxdata2)
+```
+
+```{r, BOXPLOTS EXCLUDING STELLEROIDEA (INCLUDING ALL OTHER EXPERIMENTALLY DERIVED DATA) }
+##Eo Plot##
+Eo_Box2 <- ggplot(boxdata2, aes(x= Fauna, y=Eo, fill=Fauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[o]*")"))
+
+#theme(panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(), 
+        #axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(color = "black"),
+        #panel.background = element_blank(), 
+        #axis.title = element_text(family = "Times New Roman", color = "black", size = 18),
+        #axis.title.x = element_text(face = "bold"), 
+        #axis.title.y = element_text(face = "bold"),
+        #axis.text = element_text(family = "Times New Roman", color = "black", size = 12),
+        #legend.position = "none")+
+  #labs(
+  #x = expression(Temp~degree*C),
+  #y = expression(Hypoxia~Tolerance~(P[crit] %.% B^epsilon)))
+
+##Ao Boxplot##
+Ao_Box2 <- ggplot(boxdata2, aes(x= Fauna, y=Ao, fill=Fauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) +  
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Hypoxia Tolerance (A"[o]*")"))
+
+Eo_Box2
+Ao_Box2
+
+Eo_Box2_phylopic <- Eo_Box2 + 
+  add_phylopic(img_clam, alpha = 1, x = "M", y = 1.2, ysize = 0.192) +
+  add_phylopic(img_brach, alpha = 1, x = "P", y = 1.2, ysize = 0.256) +
+  add_phylopic(image_echinodermata, alpha = 1, x = 1.27, y = 1.05, ysize = 0.235) +
+  add_phylopic(image_calliostoma, alpha = 1, x = 0.78, y = 1.05, ysize = 0.179) +
+  add_phylopic(image_anthozoa, alpha = 1, x = 2.3, y = 1.05, ysize = 0.2131) +
+  add_phylopic(image_crinoidea, alpha = 1, x = 1.8, y = 1.05, ysize = 0.240)
+
+Ao_Box2_phylopic <- Ao_Box2 + 
+  add_phylopic(img_clam, alpha = 1, x = "M", y = 200, ysize = 30) +
+  add_phylopic(img_brach, alpha = 1, x = "P", y = 200, ysize = 40) +
+  add_phylopic(image_echinodermata, alpha = 1, x = 1.25, y = 175, ysize = 34.5) +
+  add_phylopic(image_calliostoma, alpha = 1, x = 0.78, y = 175, ysize = 28) +
+  add_phylopic(image_anthozoa, alpha = 1, x = 2.3, y = 175, ysize = 33.25) +
+  add_phylopic(image_crinoidea, alpha = 1, x = 1.8, y = 175, ysize = 35.2)
+
+Eo_Box2_phylopic
+Ao_Box2_phylopic
+
+```
+
+```{r}
+# Now plot them side by side
+Experimental_boxplots_NOSTELLA <- plot_grid(Ao_Box2_phylopic, Eo_Box2_phylopic, ncol = 2)
+Experimental_boxplots_NOSTELLA
+```
+```{r}
+ggsave("Boxplots_ExperimentalData_NOSTELLA.pdf", plot= Experimental_boxplots_NOSTELLA, width=28, height=20)
+```
+
+#####################################################################################################################################
+Figures and Plots Looking at Experimental Data Only Collected During This Study (Excluding Physiology Data From Published Literature)
+#####################################################################################################################################
+
+```{r, test for normality}
+shapiro.test(boxdata3$Eo[boxdata3$Fauna == "P"])
+shapiro.test(boxdata3$Eo[boxdata3$Fauna == "M"])
+
+shapiro.test(boxdata3$Ao[boxdata3$Fauna == "P"])
+shapiro.test(boxdata3$Ao[boxdata3$Fauna == "M"])
+
+```
+
+```{r, test for homogeneity of variance}
+leveneTest(Eo ~ Fauna, data = boxdata3)
+leveneTest(Ao ~ Fauna, data = boxdata3)
+```
+
+```{r}
+wilcox.test(Eo ~ Fauna, data = boxdata3)
+wilcox.test(Ao ~ Fauna, data = boxdata3)
+```
+
+```{r}
+tapply(boxdata3$Eo, boxdata3$Fauna, mean, na.rm = TRUE)
+```
+
+```{r}
+tapply(boxdata3$Ao, boxdata3$Fauna, mean, na.rm = TRUE)
+```
+
+```{r}
+boxdata3 %>% count(Fauna)
+```
+
+```{r, BOXPLOTS INCLUDING EXPERIMENTAL DATA ONLY (Excluding Published Literature Data) (Including Stelleroidea) }
+##Eo Plot##
+Eo_Box3 <- ggplot(boxdata3, aes(x= Fauna, y=Eo, fill=Fauna)) + 
+  geom_boxplot(outlier.shape = 1) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[o]*")"))
+
+#theme(panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(), 
+        #axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(color = "black"),
+        #panel.background = element_blank(), 
+        #axis.title = element_text(family = "Times New Roman", color = "black", size = 18),
+        #axis.title.x = element_text(face = "bold"), 
+        #axis.title.y = element_text(face = "bold"),
+        #axis.text = element_text(family = "Times New Roman", color = "black", size = 12),
+        #legend.position = "none")+
+  #labs(
+  #x = expression(Temp~degree*C),
+  #y = expression(Hypoxia~Tolerance~(P[crit] %.% B^epsilon)))
+
+
+##Ao Boxplot##
+Ao_Box3 <- ggplot(boxdata3, aes(x= Fauna, y=Ao, fill=Fauna)) + 
+  geom_boxplot(outlier.shape = 1) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Hypoxia Tolerance (A"[o]*")"))
+
+Eo_Box3
+Ao_Box3
+
+Eo_Box3_phylopic <- Eo_Box3 + 
+  add_phylopic(img_clam, alpha = 1, x = "M", y = 1.2, ysize = .23) + 
+  add_phylopic(img_brach, alpha = 1, x = "P", y = 1.2, ysize = .25) + 
+  add_phylopic(image_echinodermata, alpha = 1, x = 1.25, y = 1.0, ysize = .24) + 
+  add_phylopic(image_calliostoma, alpha = 1, x = 0.78, y = 1.0, ysize = .19) + 
+  add_phylopic(image_anthozoa, alpha = 1, x = 2.3, y = 1.1, ysize = .22) + 
+  add_phylopic(image_crinoidea, alpha = 1, x = 1.81, y = 1.1, ysize = .24)
+
+Ao_Box3_phylopic <- Ao_Box3 + 
+  add_phylopic(img_clam, alpha = 1, x = "M", y = 70, ysize = 11) +
+  add_phylopic(img_brach, alpha = 1, x = "P", y = 70, ysize = 13) +
+  add_phylopic(image_echinodermata, alpha = 1, x = 1.25, y = 62, ysize = 11.5) +
+  add_phylopic(image_calliostoma, alpha = 1, x = 0.78, y = 62, ysize = 9) +
+  add_phylopic(image_anthozoa, alpha = 1, x = 2.3, y = 64, ysize = 9.5) +
+  add_phylopic(image_crinoidea, alpha = 1, x = 1.8, y = 64, ysize = 11.5)
+  
+Eo_Box3_phylopic
+Ao_Box3_phylopic
+
+```
+
+```{r}
+# Now plot them side by side
+Boxplots_ExperimentalDataONLY <- plot_grid(Ao_Box3, Eo_Box3, ncol = 2)
+
+print(Boxplots_ExperimentalDataONLY)
+
+```
+
+```{r}
+ggsave("BoxplotFig_ExperimentalData_NoLit.pdf", plot= Boxplots_ExperimentalDataONLY, width=28, height=20)
+```
+
+##################################################################################################
+Figures and Statistics Comparing Paleozoic and Modern Faunas using OBIS-derived physiological data
+##################################################################################################
+
+```{r}
+boxdata4 <- read.csv("JAMarquez_OBIStraits_BodySizes_EvoFauna_unique.csv", header=T)
+```
+
+```{r, cateogrize faunas}
+#Sort out all duplicates for the AphialID
+boxdata4<- boxdata4 %>%
+  distinct(aphiaID, .keep_all = TRUE)
+
+# Set the order of the levels for the EvoFauna factor
+boxdata4$EvoFauna <- factor(boxdata4$EvoFauna, levels = c('M', 'P', 'Other'))
+
+head(boxdata4)
+summary(boxdata4)
+```
+
+```{r, remove "Other" fauna}
+boxdata4 <- subset(boxdata4, EvoFauna != "Other")
+
+tail(boxdata4)
+```
+
+```{r}
+boxdata4 %>% count(EvoFauna)
+```
+
+```{r}
+# Function to print boxplot stats for a column within a subset (e.g., P or M)
+print_boxplot_stats <- function(data, column_name, fauna_type) {
+  values <- data %>% 
+    filter(EvoFauna == fauna_type) %>% 
+    pull({{ column_name }})
+  
+  stats <- fivenum(values)  # Q1, median, Q3
+  
+  cat("----", column_name, "(", fauna_type, ")", "----\n")
+  cat("1st Quartile:   ", stats[2], "\n")
+  cat("Median:         ", stats[3], "\n")
+  cat("3rd Quartile:   ", stats[4], "\n")
+}
+```
+
+```{r}
+# Run stats for all combinations: Aeco:P, Aeco:M, Eeco:P, Eeco:M
+print_boxplot_stats(boxdata4, "Aeco", "P")
+print_boxplot_stats(boxdata4, "Aeco", "M")
+print_boxplot_stats(boxdata4, "Eeco", "P")
+print_boxplot_stats(boxdata4, "Eeco", "M")
+```
+
+############################################################
+Statistics for OBIS data comparisons INCLUDING STELLEROIDEA
+############################################################
+
+```{r, test for normality. Sample size is too large so can't use Shapiro.test()}
+shapiro.test(boxdata4$Eeco[boxdata4$EvoFauna == "P"])
+shapiro.test(boxdata4$Eeco[boxdata4$EvoFauna == "M"])
+
+shapiro.test(boxdata4$Aeco[boxdata4$EvoFauna == "P"])
+shapiro.test(boxdata4$Aeco[boxdata4$EvoFauna == "M"])
+```
+
+```{r}
+# Perform the test and store the result
+shapiro_result_EecoP <- shapiro.test(boxdata4$Eeco[boxdata4$EvoFauna == "P"])
+
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_EecoP$p.value
+```
+
+```{r}
+# Perform the test and store the result
+shapiro_result_AecoP <- shapiro.test(boxdata4$Aeco[boxdata4$EvoFauna == "P"])
+
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_AecoP$p.value
+```
+
+```{r}
+# Histogram
+hist(boxdata4$Eeco[boxdata4$EvoFauna == "M"], breaks = 50)
+
+# Q-Q Plot
+qqnorm(boxdata4$Eeco[boxdata4$EvoFauna == "M"])
+qqline(boxdata4$Eeco[boxdata4$EvoFauna == "M"], col = "red")
+```
+
+```{r}
+set.seed(123)  # for reproducibility
+sample_data <- sample(boxdata4$Eeco[boxdata4$EvoFauna == "M"], 5000)
+shapiro_result_EecoM <- shapiro.test(sample_data)
+
+print(shapiro_result_EecoM)
+```
+
+```{r}
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_EecoM$p.value
+```
+
+```{r}
+set.seed(1234)  # for reproducibility
+sample_data2 <- sample(boxdata4$Aeco[boxdata4$EvoFauna == "M"], 5000)
+shapiro_result_AecoM <- shapiro.test(sample_data2)
+
+print(shapiro_result_AecoM)
+```
+
+```{r}
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_AecoM$p.value
+```
+
+```{r, test for homogeneity of variance}
+leveneTest(Eeco ~ EvoFauna, data = boxdata4)
+leveneTest(Aeco ~ EvoFauna, data = boxdata4)
+```
+
+```{r}
+wilcox_result_Eeco <- wilcox.test(Eeco ~ EvoFauna, data = boxdata4)
+wilcox.test(Aeco ~ EvoFauna, data = boxdata4)
+```
+
+```{r}
+# Print the p-value with higher precision
+options(digits = 20)
+wilcox_result_Eeco$p.value
+```
+
+```{r}
+range(boxdata4$Aeco, na.rm = TRUE)
+range(boxdata4$Eeco, na.rm = TRUE)
+```
+
+```{r}
+summary(boxdata4)
+is.finite(boxdata4$Aeco)
+is.finite(boxdata4$Eeco)
+```
+
+```{r}
+##Eeco Plot##
+Eeco_Box4 <- ggplot(boxdata4, aes(x= EvoFauna, y=Eeco, fill=EvoFauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[eco]*")"))
+
+##Ao Boxplot##
+Aeco_Box4 <- ggplot(boxdata4, aes(x= EvoFauna, y= Aeco, fill=EvoFauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) + 
+  coord_cartesian(ylim = c(0, 10)) +
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Hypoxia Tolerance (A"[eco]*")"))
+
+Eeco_Box4
+Aeco_Box4
+
+```
+
+```{r}
+# Now plot them side by side
+OBIS_boxplots <- plot_grid(Aeco_Box4, Eeco_Box4, ncol = 2)
+
+OBIS_boxplots
+```
+
+#############################################################
+Statistics AND Boxplots for OBIS data EXCLUDING STELLEROIDEA
+#############################################################
+
+```{r}
+# Exclude Stelleroidea
+boxdata5 <- boxdata4 %>%
+  filter(!(class.x %in% c("Asteroidea", "Ophiuroidea")))
+
+print(boxdata5)
+```
+
+```{r}
+# Run stats for all combinations: Aeco:P, Aeco:M, Eeco:P, Eeco:M
+print_boxplot_stats(boxdata5, "Aeco", "P")
+print_boxplot_stats(boxdata5, "Aeco", "M")
+print_boxplot_stats(boxdata5, "Eeco", "P")
+print_boxplot_stats(boxdata5, "Eeco", "M")
+```
+
+```{r}
+shapiro_result_Eeco_P_NoStella <- shapiro.test(boxdata5$Eeco[boxdata5$EvoFauna == "P"])
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_Eeco_P_NoStella$p.value
+```
+
+```{r}
+shapiro_result_Aeco_P_NoStella <- shapiro.test(boxdata5$Aeco[boxdata5$EvoFauna == "P"])
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_Aeco_P_NoStella$p.value
+```
+
+```{r}
+set.seed(12345)  # for reproducibility
+sample_data3 <- sample(boxdata5$Eeco[boxdata5$EvoFauna == "M"], 5000)
+shapiro.test(sample_data3)
+```
+
+```{r}
+shapiro_result_Eeco_M_NoStella <- shapiro.test(sample_data3)
+# Print the p-value with higher precision
+options(digits = 20)
+shapiro_result_Eeco_M_NoStella$p.value
+```
+
+```{r, test for homogeneity of variance}
+leveneTest(Eeco ~ EvoFauna, data = boxdata5)
+leveneTest(Aeco ~ EvoFauna, data = boxdata5)
+```
+
+```{r}
+wilcox_result_Eeco_nostella <- wilcox.test(Eeco ~ EvoFauna, data = boxdata5)
+wilcox.test(Aeco ~ EvoFauna, data = boxdata5)
+```
+
+```{r}
+# Print the p-value with higher precision
+options(digits = 20)
+wilcox_result_Eeco_nostella$p.value
+```
+
+
+```{r}
+##Eeco Plot##
+Eeco_Box5 <- ggplot(boxdata5, aes(x= EvoFauna, y=Eeco, fill=EvoFauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) +  
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[eco]*")"))
+
+##Ao Boxplot##
+Aeco_Box5 <- ggplot(boxdata5, aes(x= EvoFauna, y= Aeco, fill=EvoFauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) + 
+  coord_cartesian(ylim = c(0, 10)) +
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Hypoxia Tolerance (A"[eco]*")"))
+
+Eeco_Box5
+Aeco_Box5
+
+```
+
+```{r}
+# Now plot them side by side
+OBIS_boxplots2_nostella <- plot_grid(Aeco_Box5, Eeco_Box5, ncol = 2)
+
+OBIS_boxplots2_nostella
+```
+
+
+##################################################################################
+Statistical tests & Boxplots for Field Guide-derived Data (Beneath Pacific Tides)
+##################################################################################
+
+```{r}
+boxdata6 <- read.csv("Field_Guide_Data.csv", header=T)
+
+head(boxdata6)
+```
+
+```{r}
+Pal.data <- filter(boxdata6, phylum == "Brachiopoda" | 
+                         class == "Anthozoa" |
+                         class == "Cephalopoda" |
+                         class == "Stenolaemata" |
+                         class == "Asteroidea" |
+                         class == "Ophiuroidea" |
+                         class == "Crinoidea" |
+                         class == "Ostracoda") 
+Pal.data$evol_fauna <- "P"
+
+Mod.data <- filter(boxdata6, class == "Bivalvia" |
+                     class == "Gastropoda" |
+                     class == "Malacostraca" |
+                     class == "Demospongiae" |
+                     class == "Gymnolaemata" |
+                     class == "Echinoidea")
+Mod.data$evol_fauna <- "M"
+
+fieldguide.boxdata <- rbind(Pal.data, Mod.data)
+```
+
+```{r}
+fieldguide.boxdata %>% count(evol_fauna)
+```
+
+```{r}
+# Function to print boxplot stats for a column within a subset (e.g., P or M)
+print_boxplot_stats <- function(data, column_name, fauna_type) {
+  values <- data %>% 
+    filter(evol_fauna == fauna_type) %>% 
+    pull({{ column_name }})
+  
+  stats <- fivenum(values)  # min, Q1, median, Q3, max
+  
+  cat("----", column_name, "(", fauna_type, ")", "----\n")
+  cat("Min:            ", stats[1], "\n")
+  cat("1st Quartile:   ", stats[2], "\n")
+  cat("Median:         ", stats[3], "\n")
+  cat("3rd Quartile:   ", stats[4], "\n")
+  cat("Max:            ", stats[5], "\n")
+}
+```
+
+```{r}
+# Run stats for all combinations: Ao:P, Ao:M, Eo:P, Eo:M
+print_boxplot_stats(fieldguide.boxdata, "low_o2", "P")
+print_boxplot_stats(fieldguide.boxdata, "low_o2", "M")
+print_boxplot_stats(fieldguide.boxdata, "Eo", "P")
+print_boxplot_stats(fieldguide.boxdata, "Eo", "M")
+
+```
+
+```{r}
+fieldguide.boxdata$inverse_low_02 <- 1 / fieldguide.boxdata$low_o2
+```
+
+```{r}
+Eeco_fieldguide <- ggplot(fieldguide.boxdata, aes(x= evol_fauna, y=Eo, fill=evol_fauna)) + 
+  geom_boxplot(
+  outlier.shape = 1,
+  outlier.size = 4,
+  outlier.stroke = 1.2,
+  outlier.colour = "black"
+) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[eco]*")"))
+
+##Low O2 Boxplot##
+LowO2_fieldguide  <- ggplot(fieldguide.boxdata, aes(x=evol_fauna, y=low_o2, fill=evol_fauna)) + 
+  geom_boxplot(
+  outlier.shape = 1,
+  outlier.size = 4,
+  outlier.stroke = 1.2,
+  outlier.colour = "black"
+) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  scale_y_reverse() +
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y = expression("Lowest Dissolved O"[2]*" (matm)"))
+
+#ggsave("Box & Whisker Plots on Lowest Dissolved O2 (atm) for Evolutionary Fauna.pdf", width=16, height=16, units="in")
+
+LowO2_fieldguide
+```
+
+```{r, test for normality}
+shapiro.test(fieldguide.boxdata$Eo[fieldguide.boxdata$evol_fauna == "P"])
+shapiro.test(fieldguide.boxdata$Eo[fieldguide.boxdata$evol_fauna == "M"])
+
+shapiro.test(fieldguide.boxdata$low_o2[fieldguide.boxdata$evol_fauna == "P"])
+shapiro.test(fieldguide.boxdata$low_o2[fieldguide.boxdata$evol_fauna == "M"])
+
+```
+
+```{r, test for homogeneity of variance}
+leveneTest(Eo ~ evol_fauna, data = fieldguide.boxdata)
+leveneTest(low_o2 ~ evol_fauna, data = fieldguide.boxdata)
+```
+
+```{r}
+wilcox.test(Eo ~ evol_fauna, data = fieldguide.boxdata)
+wilcox.test(low_o2 ~ evol_fauna, data = fieldguide.boxdata)
+```
+
+```{r}
+# Now plot them side by side
+fieldguide_boxplots <- plot_grid(LowO2_fieldguide, Eeco_fieldguide, ncol = 2)
+
+fieldguide_boxplots
+```
+
+#################################################################
+EXCLUDE STELLEROIDEA FROM BPT FIELD GUIDE DATASET
+#################################################################
+
+```{r, make an additional dataframe excluding Stellaroidea}
+# Assuming your dataframe is called df
+fieldguide.boxdata2 <- fieldguide.boxdata %>%
+  filter(!(class %in% c("Asteroidea", "Ophiuroidea")))
+
+head(fieldguide.boxdata2)
+```
+
+```{r}
+fieldguide.boxdata2 %>% count(evol_fauna)
+```
+
+```{r}
+# Run stats for all combinations: Ao:P, Ao:M, Eo:P, Eo:M
+print_boxplot_stats(fieldguide.boxdata2, "low_o2", "P")
+print_boxplot_stats(fieldguide.boxdata2, "low_o2", "M")
+print_boxplot_stats(fieldguide.boxdata2, "Eo", "P")
+print_boxplot_stats(fieldguide.boxdata2, "Eo", "M")
+
+```
+
+```{r, test for normality}
+shapiro.test(fieldguide.boxdata2$Eo[boxdata2$Fauna == "P"])
+shapiro.test(fieldguide.boxdata2$Eo[boxdata2$Fauna == "M"])
+
+shapiro.test(fieldguide.boxdata2$low_o2[boxdata2$Fauna == "P"])
+shapiro.test(fieldguide.boxdata2$low_o2[boxdata2$Fauna == "M"])
+
+```
+
+```{r, test for homogeneity of variance}
+leveneTest(Eo ~ evol_fauna, data = fieldguide.boxdata2)
+leveneTest(low_o2 ~ evol_fauna, data = fieldguide.boxdata2)
+```
+
+```{r}
+wilcox.test(Eo ~ evol_fauna, data = fieldguide.boxdata2)
+wilcox.test(low_o2 ~ evol_fauna, data = fieldguide.boxdata2)
+```
+
+```{r}
+Eeco_fieldguide2 <- ggplot(fieldguide.boxdata2, aes(x= evol_fauna, y=Eo, fill=evol_fauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) +  
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y=expression("Temperature Sensitivity (E"[eco]*")"))
+
+#theme(panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(), 
+        #axis.line = element_line(colour = "black"),
+        #axis.ticks = element_line(color = "black"),
+        #panel.background = element_blank(), 
+        #axis.title = element_text(family = "Times New Roman", color = "black", size = 18),
+        #axis.title.x = element_text(face = "bold"), 
+        #axis.title.y = element_text(face = "bold"),
+        #axis.text = element_text(family = "Times New Roman", color = "black", size = 12),
+        #legend.position = "none")+
+  #labs(
+  #x = expression(Temp~degree*C),
+  #y = expression(Hypoxia~Tolerance~(P[crit] %.% B^epsilon)))
+
+
+##Low O2 Boxplot##
+LowO2_fieldguide2  <- ggplot(fieldguide.boxdata2, aes(x=evol_fauna, y=low_o2, fill=evol_fauna)) + 
+  geom_boxplot(
+    outlier.shape = 1,
+    outlier.size = 4,
+    outlier.stroke = 1.2,
+    outlier.colour = "black"
+  ) + 
+  scale_fill_manual(values=c("M" = "deepskyblue2",
+                             "P" = "darkorange2")) +
+  scale_color_manual(values=c("darkgrey",
+                              "darkgrey"))+
+  scale_y_reverse() +
+  theme(panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(family = "Helvetica", color = "black", size = 42),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_text(face = "bold"),
+        axis.text = element_text(family = "Helvetica", color = "black", size = 35),
+        legend.position = "none")+
+  labs(y = expression("Lowest Dissolved O"[2]*" (matm)"))
+
+#ggsave("Box & Whisker Plots on Lowest Dissolved O2 (atm) for Evolutionary Fauna.pdf", width=16, height=16, units="in")
+
+LowO2_fieldguide2
+```
+
+```{r}
+# Now plot them side by side
+fieldguide_boxplots2 <- plot_grid(LowO2_fieldguide2, Eeco_fieldguide2, ncol = 2)
+
+fieldguide_boxplots2
+```
+
+
+#########################################################################
+Combine All Boxplots into Marquez+ 2026 Figure 2 (Including Stelleroidea)
+#########################################################################
+
+```{r}
+library(cowplot)
+
+# Create horizontal pairs (2 columns per row)
+Experimental_boxplots <- plot_grid(
+  Ao_Box1_phylopic, NULL, Eo_Box1_phylopic,
+  ncol = 3,
+  rel_widths = c(1, 0.05, 1),
+  align = "v"
+)
+
+OBIS_boxplots <- plot_grid(
+  Aeco_Box4, NULL, Eeco_Box4,
+  ncol = 3,
+  rel_widths = c(1, 0.05, 1),
+  align = "v"
+)
+
+fieldguide_boxplots <- plot_grid(
+  LowO2_fieldguide, NULL, Eeco_fieldguide,
+  ncol = 3,
+  rel_widths = c(1, 0.05, 1),
+  align = "v"
+)
+
+# Stack the rows vertically (3 rows total)
+Marquez_25_fig2 <- plot_grid(
+  Experimental_boxplots,
+  OBIS_boxplots,
+  fieldguide_boxplots,
+  ncol = 1,
+  align = "hv",
+  rel_heights = c(1, 1, 1)  # Optional: adjust row heights if needed
+)
+
+```
+
+```{r}
+make_title <- function(text) {
+  ggplot() + 
+    theme_void() +
+    annotate("text", x = 0.5, y = 0.5, label = text,
+             family = "Helvetica", size = 17) +
+    theme(plot.margin = margin(0, 0, 0, 0, "cm"))
+}
+```
+
+```{r}
+print(image_echinodermata)
+print(image_calliostoma)
+print(image_anthozoa)
+print(image_crinoidea)
+```
+
+```{r, add labels to boxplots of final figure}
+library(cowplot)
+
+Experimental_row <- plot_grid(
+  make_title("Experimental Data"),
+  Experimental_boxplots,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+OBIS_row <- plot_grid(
+  make_title("OBIS Biogeographic Data"),
+  OBIS_boxplots,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+Fieldguide_row <- plot_grid(
+  make_title("Beneath Pacific Tides Fieldguide Data"),
+  fieldguide_boxplots,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+Marquez_26_fig2 <- plot_grid(
+  Experimental_row,
+  OBIS_row,
+  Fieldguide_row,
+  ncol = 1
+)
+
+ggsave("Marquez_26_fig2.pdf", plot = Marquez_26_fig2, width=20, height=28)
+
+```
+
+###############################################################
+Combine All Boxplots into a figure (Excluding Stellaroidea)
+###############################################################
+
+```{r, add labels to boxplots of final figure}
+Experimental_row2 <- plot_grid(
+  make_title("Experimental Data (Excluding Stellaroidea)"),
+  Experimental_boxplots_NOSTELLA,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+OBIS_row2 <- plot_grid(
+  make_title("OBIS Biogeographic Data (Excluding Stellaroidea)"),
+  OBIS_boxplots2_nostella,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+Fieldguide_row2 <- plot_grid(
+  make_title("Beneath Pacific Tides Fieldguide Data (Excluding Stellaroidea)"),
+  fieldguide_boxplots2,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+Marquez_26_figS1_NOSTELLA <- plot_grid(
+  Experimental_row2,
+  OBIS_row2,
+  Fieldguide_row2,
+  ncol = 1
+)
+
+Marquez_25_figS1_NOSTELLA
+
+ggsave("Marquez_26_figS1_NOSTELLA.pdf", plot= Marquez_26_figS1_NOSTELLA, width=20, height=28)
+```
+
+```{r}
+library(cowplot)
+
+# Stack the rows vertically (3 rows total)
+Marquez_26_fig2 <- plot_grid(
+  Experimental_boxplots_NOSTELLA,
+  OBIS_boxplots2_nostella,
+  fieldguide_boxplots2,
+  ncol = 1,
+  align = "hv",
+  rel_heights = c(1, 1, 1)  # Optional: adjust row heights if needed
+)
+
+```
+
+```{r}
+make_title <- function(text) {
+  ggplot() + 
+    theme_void() +
+    annotate("text", x = 0.5, y = 0.5, label = text,
+             family = "Helvetica", fontface = "bold", size = 25) +
+    theme(plot.margin = margin(0, 0, 0, 0, "cm"))
+}
+```
+
+```{r, add labels to boxplots of final figure}
+Experimental_row2 <- plot_grid(
+  make_title("Experimental Data"),
+  Experimental_boxplots_NOSTELLA,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+OBIS_row2 <- plot_grid(
+  make_title("OBIS Biogeographic Data"),
+  OBIS_boxplots2_nostella,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+Fieldguide_row2 <- plot_grid(
+  make_title("Beneath Pacific Tides Fieldguide Data"),
+  fieldguide_boxplots2,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+)
+
+Marquez_26_fig2.2 <- plot_grid(
+  Experimental_row2,
+  OBIS_row2,
+  Fieldguide_row2,
+  ncol = 1
+)
+
+ggsave("Marquez_26_fig2_NOSTELLA.png", plot= Marquez_26_fig2.2, width=20, height=28, dpi= 300)
+```
